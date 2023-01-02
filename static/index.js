@@ -1,5 +1,13 @@
+import init, { apply_event } from './wasm/mortal_treasures_world.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('[load] Document loaded.');
+    main()
+});
+
+async function main() {
+    await init();
+    console.log('[load] WASM loaded.');
 
     const counter_el = document.getElementById('counter');
     const increment_el = document.getElementById('increment');
@@ -7,25 +15,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const exit_el = document.getElementById('exit');
 
     let world = { count: 5 };
+
     const display = () => {
         counter_el.innerText = world.count.toString();
         console.log(`[state] world: ${JSON.stringify(world)}`);
     };
     const handle_event = (e) => {
-        switch (e.kind) {
-            case 'World':
-                delete e.kind;
-                world = e;
-                break;
-            case 'Increment':
-                world.count += 1;
-                break;
-            case 'Decrement':
-                world.count -= 1;
-                break;
-            default:
-                console.log(`[error] Unknown event kind: ${e.kind}`);
-        }
+        world = apply_event(world, e);
         display();
     }
 
@@ -59,4 +55,4 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.onerror = function (error) {
         console.error(`[error]`);
     };
-});
+}

@@ -2,7 +2,7 @@ use std::{fmt::Display, sync::Arc};
 
 use axum::extract::ws::{Message, WebSocket};
 use futures::{stream::SplitSink, Sink, SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
+use mortal_treasures_world::{Event, World};
 use tokio::sync::Mutex;
 use tracing::{debug, error, warn};
 
@@ -93,31 +93,4 @@ where
 {
     let m: Message = serde_json::to_string(e).unwrap().into();
     send(sink, m).await
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-pub struct World {
-    count: u32,
-}
-
-impl World {
-    pub fn new() -> Self {
-        Self { count: 3 }
-    }
-
-    pub fn apply(&mut self, event: Event) {
-        match event {
-            Event::Increment => self.count += 1,
-            Event::Decrement => self.count -= 1,
-            Event::World(w) => *self = w,
-        }
-    }
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-#[serde(tag = "kind")]
-pub enum Event {
-    Increment,
-    Decrement,
-    World(World),
 }

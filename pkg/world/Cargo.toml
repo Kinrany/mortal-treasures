@@ -1,0 +1,12 @@
+[package]
+name = "mortal-treasures-world"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate_type = ["lib", "cdylib"]
+
+[dependencies]
+serde = { version = "1.0.152", features = ["derive"] }
+serde-wasm-bindgen = "0.4.5"
+wasm-bindgen = "0.2.83"

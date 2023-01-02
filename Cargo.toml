@@ -1,18 +1,22 @@
+[workspace]
+members = [".", "pkg/*"]
+
 [package]
 name = "mortal-treasures"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-anyhow = "1.0.68"
 axum = { version = "0.6.1", features = ["ws", "macros"] }
-dioxus = { version = "0.2.4", features = ["web"] }
 futures = "0.3.25"
+mortal-treasures-world = { version = "0.1.0", path = "pkg/world" }
 serde = { version = "1.0.152", features = ["derive"] }
 serde_json = "1.0.91"
 tokio = { version = "1.23.0", features = ["macros", "rt-multi-thread"] }
 tower-http = { version = "0.3.5", features = ["fs", "trace"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+
+[build-dependencies]
+structopt = "0.3.26"
+wasm-pack = { version = "0.10.3" }
