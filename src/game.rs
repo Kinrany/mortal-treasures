@@ -1,52 +1,58 @@
 use std::{fmt::Display, sync::Arc};
 
 use axum::extract::ws::{Message, WebSocket};
-use futures::{Sink, SinkExt, StreamExt};
+use futures::{stream::SplitSink, Sink, SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use tracing::{debug, error, warn};
 
 #[derive(Clone)]
-pub struct Game(Arc<Mutex<(Vec<World>,)>>);
+pub struct Game(Arc<Mutex<Inner>>);
+
+struct Inner {
+    worlds: Vec<World>,
+    players: Vec<Player>,
+}
+
+type Player = SplitSink<WebSocket, Message>;
+
+impl Inner {
+    fn new() -> Self {
+        Self {
+            worlds: vec![World::new()],
+            players: vec![],
+        }
+    }
+
+    fn first_world_mut(&mut self) -> &mut World {
+        &mut self.worlds[0]
+    }
+
+    async fn add_player(&mut self, player: Player) {
+        let id = self.players.len();
+        self.players.push(player);
+        let world = self.first_world_mut().clone();
+        send_event(&mut self.players[id], &Event::World(world)).await;
+    }
+
+    async fn broadcast(&mut self, event: &Event) {
+        for player in &mut self.players {
+            send_event(player, event).await
+        }
+    }
+}
 
 impl Game {
     pub fn new() -> Self {
-        Self(Arc::new(Mutex::new((vec![World::new()],))))
-    }
-
-    pub async fn with_first_world<T>(&self, f: impl FnOnce(&mut World) -> T) -> T {
-        f(&mut self.0.lock().await.0[0])
+        Self(Arc::new(Mutex::new(Inner::new())))
     }
 
     pub async fn add_player(self, socket: WebSocket) -> Result<(), tokio::task::JoinError> {
+        let (sender, mut receiver) = socket.split();
+
+        self.0.lock().await.add_player(sender).await;
+
         tokio::spawn(async move {
-            let (mut sender, mut receiver) = socket.split();
-
-            async fn send<S, M>(sink: &mut S, m: M)
-            where
-                S: Sink<M> + Unpin,
-                S::Error: Display,
-            {
-                if let Err(error) = sink.send(m).await {
-                    error!(%error, "outgoing websocket error");
-                }
-            }
-
-            async fn send_event<S>(sink: &mut S, e: &Event)
-            where
-                S: Sink<Message> + Unpin,
-                S::Error: Display,
-            {
-                let m: Message = serde_json::to_string(e).unwrap().into();
-                send(sink, m).await
-            }
-
-            send_event(
-                &mut sender,
-                &Event::World(self.with_first_world(|w| w.clone()).await),
-            )
-            .await;
-
             while let Some(msg) = receiver.next().await {
                 match msg {
                     Ok(msg) => {
@@ -56,18 +62,37 @@ impl Game {
                             warn!("not an event");
                             continue;
                         };
-                        self.with_first_world(|e| e.apply(event.clone())).await;
-                        send_event(&mut sender, &event).await;
+                        let mut g = self.0.lock().await;
+                        g.first_world_mut().apply(event.clone());
+                        g.broadcast(&event).await;
                     }
                     Err(error) => {
                         warn!(%error, "incoming websocket error");
-                        send(&mut sender, error.to_string().into()).await;
                     }
                 }
             }
         })
         .await
     }
+}
+
+async fn send<S, M>(sink: &mut S, m: M)
+where
+    S: Sink<M> + Unpin,
+    S::Error: Display,
+{
+    if let Err(error) = sink.send(m).await {
+        error!(%error, "outgoing websocket error");
+    }
+}
+
+async fn send_event<S>(sink: &mut S, e: &Event)
+where
+    S: Sink<Message> + Unpin,
+    S::Error: Display,
+{
+    let m: Message = serde_json::to_string(e).unwrap().into();
+    send(sink, m).await
 }
 
 #[derive(Clone, Deserialize, Serialize)]
