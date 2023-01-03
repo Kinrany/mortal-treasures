@@ -13,6 +13,7 @@ async function main() {
     const increment_el = document.getElementById('increment');
     const decrement_el = document.getElementById('decrement');
     const text_el = document.getElementById('text');
+    const game_over_el = document.getElementById('game_over');
 
     let world = { count: 5, text: "hello???" };
 
@@ -38,6 +39,7 @@ async function main() {
             display();
             socket.send(JSON.stringify({ kind: 'Text', s }));
         };
+        game_over_el.onclick = () => socket.send(JSON.stringify({ kind: 'GameOver' }));
     };
 
     socket.onmessage = function (event) {

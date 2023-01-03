@@ -1,9 +1,13 @@
 mod player;
 
-use std::{collections::HashSet, fmt::Debug, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+    sync::Arc,
+};
 
 use axum::extract::ws::{Message, WebSocket};
-use futures::StreamExt;
+use futures::{FutureExt, StreamExt};
 use indexmap::IndexMap;
 use mortal_treasures_world::{Event, World};
 use player::Player;
@@ -74,6 +78,15 @@ impl Inner {
     fn world_players(&self, world: Uuid) -> &HashSet<Player> {
         self.players.get(&world).unwrap()
     }
+
+    fn end_world(&mut self, world_id: Uuid) -> HashSet<Player> {
+        self.worlds.remove(&world_id).unwrap();
+        let players = self.players.remove(&world_id).unwrap();
+        for player in &players {
+            self.add_player(player.clone());
+        }
+        players
+    }
 }
 
 impl Game {
@@ -98,14 +111,31 @@ impl Game {
     }
 
     async fn handle_message_from_player(&self, player: &Player, event: Event) {
-        let world_id = self
-            .with_lock(|g| {
+        self.with_lock(|g| {
+            if matches!(event, Event::GameOver) {
+                let (world_id, _) = g.player_world_mut(player);
+                let players = g.end_world(world_id);
+                let worlds = players
+                    .into_iter()
+                    .map(|player| {
+                        let world = g.player_world_mut(&player).1.clone();
+                        (player, world)
+                    })
+                    .collect::<HashMap<_, _>>();
+                async {
+                    for (player, world) in worlds {
+                        player.send_event(&Event::World(world)).await;
+                    }
+                }
+                .boxed()
+            } else {
                 let (world_id, world) = g.player_world_mut(player);
                 world.apply(event.clone());
-                world_id
-            })
-            .await;
-        self.broadcast_to_world(world_id, &event).await;
+                self.broadcast_to_world(world_id, &event).boxed()
+            }
+        })
+        .await
+        .await
     }
 
     pub async fn add_player(self, socket: WebSocket) -> Result<(), tokio::task::JoinError> {

@@ -4,7 +4,7 @@ use wasm_bindgen::{prelude::*, JsValue};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct World {
-    pub count: u32,
+    pub count: i32,
     pub text: String,
 }
 
@@ -22,6 +22,7 @@ impl World {
             Event::Increment => self.count += 1,
             Event::Decrement => self.count -= 1,
             Event::Text { s } => self.text = s,
+            Event::GameOver => (),
         }
     }
 }
@@ -39,6 +40,7 @@ pub enum Event {
     Increment,
     Decrement,
     Text { s: String },
+    GameOver,
 }
 
 #[wasm_bindgen]
