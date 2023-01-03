@@ -2,10 +2,10 @@ use serde::{Deserialize, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
 use wasm_bindgen::{prelude::*, JsValue};
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct World {
-    count: u32,
-    text: String,
+    pub count: u32,
+    pub text: String,
 }
 
 impl World {
@@ -18,10 +18,10 @@ impl World {
 
     pub fn apply(self: &mut World, event: Event) {
         match event {
+            Event::World(w) => *self = w,
             Event::Increment => self.count += 1,
             Event::Decrement => self.count -= 1,
             Event::Text { s } => self.text = s,
-            Event::World(w) => *self = w,
         }
     }
 }
@@ -32,13 +32,13 @@ impl Default for World {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "kind")]
 pub enum Event {
+    World(World),
     Increment,
     Decrement,
     Text { s: String },
-    World(World),
 }
 
 #[wasm_bindgen]

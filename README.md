@@ -4,4 +4,6 @@ A multiplayer survival game where rounds last 20 minutes and death is permanent.
 
 ## Development
 
-Serve client with `cargo install trunk && trunk serve`
+Build shared code with `./build_wasm.sh`.
+
+Start server with `cargo run`.
