@@ -5,17 +5,22 @@ use wasm_bindgen::{prelude::*, JsValue};
 #[derive(Clone, Deserialize, Serialize)]
 pub struct World {
     count: u32,
+    text: String,
 }
 
 impl World {
     pub fn new() -> World {
-        Self { count: 3 }
+        Self {
+            count: 3,
+            text: "hello".to_string(),
+        }
     }
 
     pub fn apply(self: &mut World, event: Event) {
         match event {
             Event::Increment => self.count += 1,
             Event::Decrement => self.count -= 1,
+            Event::Text { s } => self.text = s,
             Event::World(w) => *self = w,
         }
     }
@@ -32,6 +37,7 @@ impl Default for World {
 pub enum Event {
     Increment,
     Decrement,
+    Text { s: String },
     World(World),
 }
 

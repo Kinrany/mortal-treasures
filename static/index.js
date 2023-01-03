@@ -12,12 +12,13 @@ async function main() {
     const counter_el = document.getElementById('counter');
     const increment_el = document.getElementById('increment');
     const decrement_el = document.getElementById('decrement');
-    const exit_el = document.getElementById('exit');
+    const text_el = document.getElementById('text');
 
-    let world = { count: 5 };
+    let world = { count: 5, text: "hello???" };
 
     const display = () => {
         counter_el.innerText = world.count.toString();
+        text_el.value = world.text;
         console.log(`[state] world: ${JSON.stringify(world)}`);
     };
     const handle_event = (e) => {
@@ -32,7 +33,11 @@ async function main() {
 
         increment_el.onclick = () => socket.send(JSON.stringify({ kind: 'Increment' }));
         decrement_el.onclick = () => socket.send(JSON.stringify({ kind: 'Decrement' }));
-        exit_el.onclick = () => socket.close();
+        text_el.onchange = function () {
+            let s = this.value;
+            display();
+            socket.send(JSON.stringify({ kind: 'Text', s }));
+        };
     };
 
     socket.onmessage = function (event) {
