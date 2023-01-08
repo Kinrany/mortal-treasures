@@ -1,13 +1,15 @@
 <script src="./index.js" type="module"></script>
 
-<div>
-    <p id="counter">?</p>
-    <button id="increment">plus</button>
-    <button id="decrement">minus</button>
-</div>
-<div>
-    <input type="text" id="text" />
-</div>
-<div>
-    <button id="game_over">game over</button>
+<div id="app">
+    <div>
+        <p id="counter">{{ count }}</p>
+        <button id="increment" @click="increment">plus</button>
+        <button id="decrement" @click="decrement">minus</button>
+    </div>
+    <div>
+        <input type="text" id="text" :value="text" @change="set_text" />
+    </div>
+    <div>
+        <button id="game_over" @click="game_over">game over</button>
+    </div>
 </div>
